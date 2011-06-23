@@ -60,9 +60,8 @@ def find_batting_standard_table(soup):
             '''table does not have an "id" attribute, oh-well, the 
             table we're looking for does'''
             pass
-    exception_string = 'Did not find "batting_standard" table in %s' % soup
-    #raise Exception(exception_string)
-    print exception_string
+    #exception_string = 'Did not find "batting_standard" table in %s' % soup
+    #raise BaseballReferenceParsingException(exception_string)
 
 batting_standard_re = 'batting_standard\.((18|19|20)[0-9]{2})'
 
@@ -87,6 +86,7 @@ def decompose_batting_table(batting_table_soup):
 
 def batting_stats_from_url(url):
     soup = url_to_beautiful_soup(url)
+    batting_table = None
     batting_table = find_batting_standard_table(soup)
     if batting_table:
         stats = decompose_batting_table(batting_table)
@@ -106,6 +106,7 @@ def player_page_links(players_page_url):
         player_page_url = link_to_url(link_element)
         yield player_name, player_page_url
 
+
 def get_all_player_page_links():
     for letter in ascii_letters[:26]: #lowercase letters
         players_page_url = PLAYERS_PAGE_TEMPLATE % {'letter': letter}
@@ -118,9 +119,17 @@ def get_all_player_stats():
         batting_stats = batting_stats_from_url(player_page_url)
         yield player_name, batting_stats
 
+class BaseballReferenceParsingException(Exception):
+    def __init__(self, value):
+        def __init__(self, value):
+            self.value = value
+        def __str__(self):
+            return repr(self.value)
+
 def main():
+    
     for player, stats in get_all_player_stats():
-        print player, stats
+        print player
 
     return 0
 
