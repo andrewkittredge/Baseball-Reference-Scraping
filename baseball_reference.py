@@ -3,6 +3,10 @@
 import urllib
 from BeautifulSoup import BeautifulSoup
 import re
+import itertools
+from string import ascii_letters
+
+PLAYERS_PAGE_TEMPLATE='http://www.baseball-reference.com/players/%(letter)s/'
 
 STANDARD_BATTING_COLUMNS=(
 'Year',
@@ -42,7 +46,7 @@ def url_to_beautiful_soup(url):
     soup = BeautifulSoup(''.join(url.readlines()))
     return soup
 
-def link_to_url(domain, link_element):
+def link_to_url(link_element, domain='basball-reference.com'):
     href = filter(lambda attr: attr[0] == 'href', link_element.attrs)[0][1]
     return ''.join(('http://', domain, href))
 
@@ -80,3 +84,24 @@ def decompose_batting_table(batting_table_soup):
             row_values[key] = value
             
         yield row_values
+
+def player_page_links(players_page_url):
+    f = urllib.urlopen(players_page_url)
+    soup = BeautifulSoup(''.join(f))
+    page_content = soup.findAll('div', id='page_content')[0]
+    player_blocks = page_content.findAll('blockquote')
+    link_elements = (player_block.findAll('a') for 
+                    player_block in player_blocks)
+    link_elements = itertools.chain(*link_elements)
+
+    for link_element in link_elements:
+        player_name = link_element.text
+        player_page_url = link_to_url(link_element)
+        yield player_name, player_page_url
+
+def get_all_player_page_links():
+    for letter in ascii_letters[:26]: #lowercase letters
+        players_page_url = PLAYERS_PAGE_TEMPLATE % {'letter': letter}
+        names_w_links = player_page_links(players_page_url)
+        for player_page, player_page_link in names_w_links:
+            yield player_page, player_page_link
