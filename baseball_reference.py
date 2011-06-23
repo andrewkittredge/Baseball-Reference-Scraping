@@ -67,6 +67,8 @@ def decompose_batting_table(batting_table_soup):
     batting_table_body = batting_table_soup.findAll('tbody')[0]
     for table_row in batting_table_body.findAll('tr'):
         table_row_id = table_row.get('id')
+        if not table_row_id:
+            continue
         year = re.findall(batting_standard_re, table_row_id)
         row_values = {}
         my_keys_with_values = zip(STANDARD_BATTING_COLUMNS, 
@@ -77,4 +79,4 @@ def decompose_batting_table(batting_table_soup):
             value = element.text
             row_values[key] = value
             
-        return row_values
+        yield row_values
