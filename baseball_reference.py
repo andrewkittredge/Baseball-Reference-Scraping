@@ -5,6 +5,7 @@ from BeautifulSoup import BeautifulSoup
 import re
 import itertools
 from string import ascii_letters
+import sys
 
 PLAYERS_PAGE_TEMPLATE='http://www.baseball-reference.com/players/%(letter)s/'
 
@@ -46,7 +47,7 @@ def url_to_beautiful_soup(url):
     soup = BeautifulSoup(''.join(url.readlines()))
     return soup
 
-def link_to_url(link_element, domain='basball-reference.com'):
+def link_to_url(link_element, domain='baseball-reference.com'):
     href = filter(lambda attr: attr[0] == 'href', link_element.attrs)[0][1]
     return ''.join(('http://', domain, href))
 
@@ -59,7 +60,7 @@ def find_batting_standard_table(soup):
             '''table does not have an "id" attribute, oh-well, the 
             table we're looking for does'''
             pass
-    raise Expection('Did not find "batting_standard" table in %s' % soup)
+    raise Exception('Did not find "batting_standard" table in %s' % soup)
 
 batting_standard_re = 'batting_standard\.((18|19|20)[0-9]{2})'
 
@@ -67,7 +68,7 @@ def decompose_batting_table(batting_table_soup):
     '''Takes the soup of batting statistics table
 
     '''
-
+    stats = []
     batting_table_body = batting_table_soup.findAll('tbody')[0]
     for table_row in batting_table_body.findAll('tr'):
         table_row_id = table_row.get('id')
@@ -75,15 +76,17 @@ def decompose_batting_table(batting_table_soup):
             continue
         year = re.findall(batting_standard_re, table_row_id)
         row_values = {}
-        my_keys_with_values = zip(STANDARD_BATTING_COLUMNS, 
-                                table_row.findAll('td')
-                                  )
+        values = [element.text for element in table_row.findAll('td')]
+        my_keys_with_values = zip(STANDARD_BATTING_COLUMNS, values)
+        row_values = dict(my_keys_with_values)
 
-        for key, element in my_keys_with_values:
-            value = element.text
-            row_values[key] = value
-            
-        yield row_values
+        stats.append(row_values)
+    return stats
+
+def batting_stats_from_url(url):
+    soup = url_to_beautiful_soup(url)
+    batting_table = find_batting_standard_table(soup)
+    stats = decompose_batting_table(batting_table)
 
 def player_page_links(players_page_url):
     f = urllib.urlopen(players_page_url)
@@ -103,5 +106,19 @@ def get_all_player_page_links():
     for letter in ascii_letters[:26]: #lowercase letters
         players_page_url = PLAYERS_PAGE_TEMPLATE % {'letter': letter}
         names_w_links = player_page_links(players_page_url)
-        for player_page, player_page_link in names_w_links:
-            yield player_page, player_page_link
+        for player_name, player_page_url in names_w_links:
+            yield player_name, player_page_url
+
+def get_all_player_stats():
+    for player_name, player_page_url in get_all_player_page_links():
+        batting_stats = batting_stats_from_url(player_page_url)
+        yield player_name, batting_stats
+
+def main():
+    for player, stats in get_all_player_stats():
+        print player, stats
+
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
