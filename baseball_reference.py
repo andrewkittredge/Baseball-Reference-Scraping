@@ -60,7 +60,9 @@ def find_batting_standard_table(soup):
             '''table does not have an "id" attribute, oh-well, the 
             table we're looking for does'''
             pass
-    raise Exception('Did not find "batting_standard" table in %s' % soup)
+    exception_string = 'Did not find "batting_standard" table in %s' % soup
+    #raise Exception(exception_string)
+    print exception_string
 
 batting_standard_re = 'batting_standard\.((18|19|20)[0-9]{2})'
 
@@ -86,7 +88,9 @@ def decompose_batting_table(batting_table_soup):
 def batting_stats_from_url(url):
     soup = url_to_beautiful_soup(url)
     batting_table = find_batting_standard_table(soup)
-    stats = decompose_batting_table(batting_table)
+    if batting_table:
+        stats = decompose_batting_table(batting_table)
+        return stats
 
 def player_page_links(players_page_url):
     f = urllib.urlopen(players_page_url)
