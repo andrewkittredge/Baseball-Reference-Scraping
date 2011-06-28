@@ -84,9 +84,7 @@ def decompose_batting_table(batting_table_soup):
         stats.append(row_values)
     return stats
 
-def batting_stats_from_url(url):
-    soup = url_to_beautiful_soup(url)
-    batting_table = None
+def batting_stats_from_soup(soup):
     batting_table = find_batting_standard_table(soup)
     if batting_table:
         stats = decompose_batting_table(batting_table)
@@ -114,10 +112,30 @@ def get_all_player_page_links():
         for player_name, player_page_url in names_w_links:
             yield player_name, player_page_url
 
+def long_player_name_from_soup(soup):
+    '''Gets a more specific name from the player page to avoid duplicate names.
+
+    '''
+    
+    info_box = soup.findAll('div', id='info_box')[0]
+    info_table = info_box.findAll('table')
+    if info_table:
+        long_name_element = info_table[0].findAll('p')[1]
+    else:
+        long_name_element = info_box.findAll('p')[0]
+
+
+
+    return long_name_element.text
+
 def get_all_player_stats():
     for player_name, player_page_url in get_all_player_page_links():
-        batting_stats = batting_stats_from_url(player_page_url)
-        yield player_name, batting_stats
+
+        soup = url_to_beautiful_soup(player_page_url)
+        batting_stats = batting_stats_from_soup(soup)
+        long_player_name = long_player_name_from_soup(soup)
+
+        yield long_player_name, batting_stats
 
 class BaseballReferenceParsingException(Exception):
     def __init__(self, value):
